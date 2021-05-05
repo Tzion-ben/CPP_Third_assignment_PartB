@@ -260,6 +260,19 @@ using namespace ariel;
             return false;
         }
 
+        //***********************************************************//
+        static istream& getAndCheckNextCharIs(istream& input, char expectedChar) {
+            char actualChar;
+            input >> actualChar;
+            if (!input) {return input;}
+
+            if (actualChar!=expectedChar) {
+                // failbit is for format error
+                input.setstate(ios::failbit);
+            }
+            return input;
+        }
+
         //----------------------------------
         // friend global IO operators
         //----------------------------------
@@ -273,55 +286,36 @@ using namespace ariel;
         /*input operator*/
         istream& ariel::operator>> (std::istream& input , NumberWithUnits& n){
             double new_amount = 0; 
-            string new_unitType , line , toChesk;
+            string unitType;
             bool update = false;
+            char ch ;
 
-            input >> new_amount;  
-            while(!input.eof()){
-                input >> line;
-                if(line.length() > 1){
-                    if(isdigit(line.at(0)) > 0 || isdigit(line.at(1)) > 0){
-                        new_amount =std::stod(line);
-                        // cout << "amount: " << new_amount << "\n";
-                        input >> line;
+            input >> new_amount;// reading the unit  numbet from the input
+            n._amount = new_amount;
+            input >> unitType;// reading the next string that have to be that unitType  
+           
+            if (unitType.length() > 1){
+                if(unitType.at(0) == '[' && unitType.at(unitType.length()-1) == ']')
+                    {unitType = unitType.substr(1 , unitType.length()-2);}
+                else if(unitType.at(0) == '[' )
+                    {
+                        unitType = unitType.substr(1 , unitType.length());
+                        input >> ch; 
                     }
-                }
-              
-                // std::cout << "input is: " <<line << "\n";
-                
-                for(auto it = NumberWithUnits::_unitsConverting.begin() ; it != NumberWithUnits::_unitsConverting.end() ; it++){
-                    // cout << "in the map is :" <<it->first << "\n";
-                    // cout << (isdigit(line.at(0))) << "\n";
-
-                   
-                    if(it->first == line){
-                        new_unitType = line;
-                        update = true;
-                    }
-                    else{
-                        if(line.length() > 1 ){
-                            if(line.at(0) == '[' && line.at(line.length()-1) == ']')
-                            {toChesk = line.substr(1 , line.length()-2);}
-                            else if(line.at(0) == '[' )
-                            {
-                                toChesk = line.substr(1 , line.length());}
-                            // cout << "to check :" << toChesk << "\n\n";
-                            if(it->first == toChesk){
-                                new_unitType = toChesk;
-                                update = true;
-                            }
-                        }
-                    }  
-                
-                }
-                // std::cout << "amount :" << new_amount << "\n";
-                // std::cout << "to check :" << toChesk << "\n\n";
-                n._amount = new_amount;
-                n._unitType = new_unitType;
-                // std::cout << "n.amount :" <<   n._amount << "\n";
-                // std::cout << "n.unitType :" <<  n._unitType << "\n\n";
             }
-            
+            else if(unitType.length() == 1){
+                input >> unitType;// reading the next string that have to be that unitType 
+                if(unitType.at(unitType.length() -1 ) != ']' ){input >> ch; } 
+            }
+                if(unitType.length() > 0){
+                    for(auto it = NumberWithUnits::_unitsConverting.begin() ; it != NumberWithUnits::_unitsConverting.end() ; it++){
+                        if(unitType == it->first){
+                            n._unitType = unitType;
+                            update = true;// found the currect unit type
+                        }
+                    }
+                }
+
             if(!update){throw "Invalid Unit Type";}
             return input;
         }
